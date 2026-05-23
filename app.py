@@ -1,192 +1,251 @@
+import streamlit as st
 import pandas as pd
-import os
+
+st.set_page_config(page_title="Color Clarity Automation")
+
+st.title("Color Clarity Automation")
 
 # =========================
-# FILE PATHS
+# FILE UPLOADERS
 # =========================
 
-color_clarity_file = "color_clarity.xlsx"
-pending_video_file = "pending_video.xlsx"
+color_clarity_file = st.file_uploader(
+    "Upload Color Clarity File",
+    type=["xlsx"]
+)
 
-output_file = "Final_Output.xlsx"
-
-# =========================
-# LOAD FILES
-# =========================
-
-df1 = pd.read_excel(color_clarity_file)
-
-# Read SECOND SHEET from pending video file
-df2 = pd.read_excel(pending_video_file, sheet_name=1)
+pending_video_file = st.file_uploader(
+    "Upload Pending Video File",
+    type=["xlsx"]
+)
 
 # =========================
-# STEP 1 - KEEP ONLY IGI
+# PROCESS FILES
 # =========================
 
-df1 = df1[df1["Lab"].astype(str).str.upper() == "IGI"]
+if color_clarity_file and pending_video_file:
 
-# =========================
-# STEP 2 - COLOR CLEANING
-# =========================
+    # =========================
+    # LOAD FILES
+    # =========================
 
-allowed_colors = [
-    "BLUE",
-    "BROWN",
-    "YELLOW",
-    "GREEN",
-    "ORANGE",
-    "PINK"
-]
+    df1 = pd.read_excel(color_clarity_file)
 
-def clean_color(color):
-    if pd.isna(color):
+    # Read SECOND SHEET
+    df2 = pd.read_excel(pending_video_file, sheet_name=1)
+
+    # =========================
+    # STEP 1 - KEEP ONLY IGI
+    # =========================
+
+    df1 = df1[
+        df1["Lab"].astype(str).str.upper() == "IGI"
+    ]
+
+    # =========================
+    # STEP 2 - COLOR CLEANING
+    # =========================
+
+    allowed_colors = [
+        "BLUE",
+        "BROWN",
+        "YELLOW",
+        "GREEN",
+        "ORANGE",
+        "PINK"
+    ]
+
+    def clean_color(color):
+
+        if pd.isna(color):
+            return None
+
+        color_upper = str(color).upper()
+
+        for allowed in allowed_colors:
+
+            if allowed in color_upper:
+                return allowed
+
         return None
 
-    color_upper = str(color).upper()
+    df1["Color"] = df1["Color"].apply(clean_color)
 
-    for allowed in allowed_colors:
-        if allowed in color_upper:
-            return allowed
+    # Remove unmatched colors
+    df1 = df1[
+        df1["Color"].notna()
+    ]
 
-    return None
+    # =========================
+    # STEP 3 - KEEP REQUIRED COLUMNS
+    # =========================
 
-df1["Color"] = df1["Color"].apply(clean_color)
+    required_columns = [
+        "Serial #",
+        "Shape",
+        "Color",
+        "Grade",
+        "Cts.",
+        "Lab",
+        "H&&A",
+        "Certificate #"
+    ]
 
-# Remove rows where color not matched
-df1 = df1[df1["Color"].notna()]
+    df1 = df1[required_columns]
 
-# =========================
-# STEP 3 - KEEP ONLY REQUIRED COLUMNS
-# =========================
+    # =========================
+    # STEP 4 - SHAPE CLEANING
+    # =========================
 
-required_columns = [
-    "Serial #",
-    "Shape",
-    "Color",
-    "Grade",
-    "Cts.",
-    "Lab",
-    "H&&A",
-    "Certificate #"
-]
+    df1["Shape"] = df1["Shape"].replace({
+        "CUSHION MODIFIED": "CUSHION",
+        "CUSHION BRILLIANT": "CUSHION"
+    })
 
-df1 = df1[required_columns]
+    # =========================
+    # STEP 5 - REMOVE SERIAL PREFIXES
+    # =========================
 
-# =========================
-# STEP 4 - SHAPE CLEANING
-# =========================
+    remove_prefixes = (
+        "NY",
+        "V",
+        "DM",
+        "DC"
+    )
 
-df1["Shape"] = df1["Shape"].replace({
-    "CUSHION MODIFIED": "CUSHION",
-    "CUSHION BRILLIANT": "CUSHION"
-})
+    df1 = df1[
+        ~df1["Serial #"]
+        .astype(str)
+        .str.upper()
+        .str.startswith(remove_prefixes)
+    ]
 
-# =========================
-# STEP 5 - REMOVE SERIAL PREFIXES
-# =========================
+    # =========================
+    # STEP 6 - CUSTOMER STATUS LOGIC
+    # =========================
 
-remove_prefixes = ("NY", "V", "DM", "DC")
+    customer_values = [
+        "GOODS IN TRANSIT FROM OVERSEAS",
+        "GOODS IN OFFICE - PARCEL PAPERS BEING MADE",
+        "JCK 2026"
+    ]
 
-df1 = df1[
-    ~df1["Serial #"].astype(str).str.upper().str.startswith(remove_prefixes)
-]
+    mask = (
+        df2["Customer"]
+        .astype(str)
+        .str.upper()
+        .isin(customer_values)
+    )
 
-# =========================
-# STEP 6 - PENDING VIDEO STATUS CLEANING
-# =========================
+    df2.loc[
+        mask &
+        (
+            df2["Status"]
+            .astype(str)
+            .str.upper() == "ONMEMO"
+        ),
+        "Status"
+    ] = "Inhand"
 
-customer_values = [
-    "GOODS IN TRANSIT FROM OVERSEAS",
-    "GOODS IN OFFICE - PARCEL PAPERS BEING MADE",
-    "JCK 2026"
-]
+    # =========================
+    # STEP 7 - MATCH SERIAL # WITH LOT #
+    # =========================
 
-mask = df2["Customer"].astype(str).str.upper().isin(customer_values)
+    status_map = (
+        df2
+        .set_index("Lot #")["Status"]
+        .to_dict()
+    )
 
-df2.loc[
-    mask & (df2["Status"].astype(str).str.upper() == "ONMEMO"),
-    "Status"
-] = "Inhand"
+    serial_index = df1.columns.get_loc("Serial #")
 
-# =========================
-# STEP 7 - MATCH SERIAL # WITH LOT #
-# =========================
+    df1.insert(
+        serial_index + 1,
+        "Status",
+        df1["Serial #"].map(status_map)
+    )
 
-status_map = df2.set_index("Lot #")["Status"].to_dict()
+    # =========================
+    # STEP 8 - SIZE GROUP
+    # =========================
 
-# Insert Status column right side of Serial #
-serial_index = df1.columns.get_loc("Serial #")
+    def get_size_group(cts):
 
-df1.insert(
-    serial_index + 1,
-    "Status",
-    df1["Serial #"].map(status_map)
-)
+        try:
 
-# =========================
-# STEP 8 - ADD SIZE GROUP COLUMN
-# =========================
+            cts = float(cts)
 
-def get_size_group(cts):
-    try:
-        cts = float(cts)
+            if 1.00 <= cts <= 1.49:
+                return "1.00-1.49"
 
-        if 1.00 <= cts <= 1.49:
-            return "1.00-1.49"
+            elif 1.50 <= cts <= 1.99:
+                return "1.50-1.99"
 
-        elif 1.50 <= cts <= 1.99:
-            return "1.50-1.99"
+            elif 2.00 <= cts <= 2.99:
+                return "2.00-2.99"
 
-        elif 2.00 <= cts <= 2.99:
-            return "2.00-2.99"
+            elif 3.00 <= cts <= 3.99:
+                return "3.00-3.99"
 
-        elif 3.00 <= cts <= 3.99:
-            return "3.00-3.99"
+            elif 4.00 <= cts <= 4.99:
+                return "4.00-4.99"
 
-        elif 4.00 <= cts <= 4.99:
-            return "4.00-4.99"
+            elif 5.00 <= cts <= 5.99:
+                return "5.00-5.99"
 
-        elif 5.00 <= cts <= 5.99:
-            return "5.00-5.99"
+            elif 6.00 <= cts <= 6.99:
+                return "6.00-6.99"
 
-        elif 6.00 <= cts <= 6.99:
-            return "6.00-6.99"
+            elif 7.00 <= cts <= 7.99:
+                return "7.00-7.99"
 
-        elif 7.00 <= cts <= 7.99:
-            return "7.00-7.99"
+            elif 8.00 <= cts <= 8.99:
+                return "8.00-8.99"
 
-        elif 8.00 <= cts <= 8.99:
-            return "8.00-8.99"
+            elif 9.00 <= cts <= 9.99:
+                return "9.00-9.99"
 
-        elif 9.00 <= cts <= 9.99:
-            return "9.00-9.99"
+            elif 10.00 <= cts <= 10.99:
+                return "10.00-10.99"
 
-        elif 10.00 <= cts <= 10.99:
-            return "10.00-10.99"
+            else:
+                return "Out of Range"
 
-        else:
+        except:
             return "Out of Range"
 
-    except:
-        return "Out of Range"
+    # Add SIZE GROUP column
+    cts_index = df1.columns.get_loc("Cts.")
 
-# Add SIZE GROUP column right side of Cts.
-cts_index = df1.columns.get_loc("Cts.")
+    df1.insert(
+        cts_index + 1,
+        "SIZE GROUP",
+        df1["Cts."].apply(get_size_group)
+    )
 
-df1.insert(
-    cts_index + 1,
-    "SIZE GROUP",
-    df1["Cts."].apply(get_size_group)
-)
+    # Remove Out of Range
+    df1 = df1[
+        df1["SIZE GROUP"] != "Out of Range"
+    ]
 
-# Remove Out of Range rows
-df1 = df1[df1["SIZE GROUP"] != "Out of Range"]
+    # =========================
+    # DOWNLOAD OUTPUT
+    # =========================
 
-# =========================
-# SAVE OUTPUT
-# =========================
+    output_file = "Final_Output.xlsx"
 
-df1.to_excel(output_file, index=False)
+    df1.to_excel(
+        output_file,
+        index=False
+    )
 
-print("Automation Completed Successfully!")
-print("Output File Saved:", output_file)
+    st.success("Automation Completed Successfully!")
+
+    with open(output_file, "rb") as file:
+
+        st.download_button(
+            label="Download Final Output",
+            data=file,
+            file_name=output_file,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
