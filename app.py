@@ -32,7 +32,7 @@ if color_clarity_file and pending_video_file:
     df1 = pd.read_excel(color_clarity_file)
 
     # Read SECOND SHEET
-    df2 = pd.read_excel(pending_video_file, sheet_name=1)
+    df2 = pd.read_excel(pending_video_file, sheet_name=0)
 
     # =========================
     # STEP 1 - KEEP ONLY IGI
