@@ -441,10 +441,19 @@ if color_clarity_file and pending_video_file and certify_file:
                                            column=inhand_col
                                         ).value = int(pivot_value)
 
+                                    else:
+
+                                        ws.cell(
+                                            row=current_data_row,
+                                            column=inhand_col
+                                        ).value = ""    
+
                         except:
                             pass
 
                         current_data_row += 1
+                        
+                        
 
     # =========================================
     # SAVE FINAL OUTPUT
