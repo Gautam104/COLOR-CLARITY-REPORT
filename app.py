@@ -135,7 +135,6 @@ if color_clarity_file and pending_video_file and certify_file:
 
     df1["Color"] = df1["Color"].apply(clean_color)
 
-    # REMOVE OTHER COLORS
     df1 = df1[
         df1["Color"].notna()
     ]
@@ -316,8 +315,6 @@ if color_clarity_file and pending_video_file and certify_file:
 
         ws = wb[color_name]
 
-        current_shape = None
-
         # =========================================
         # FIND SHAPE TABLES
         # =========================================
@@ -352,13 +349,10 @@ if color_clarity_file and pending_video_file and certify_file:
                     data_start_row = row + 2
 
                     size_col = None
-                    maxpcs_col = None
                     inhand_col = None
-                    toorder_col = None
-                    sizegroup_col = None
 
                     # =========================================
-                    # FIND TABLE HEADERS
+                    # FIND HEADERS
                     # =========================================
 
                     for search_col in range(1, ws.max_column + 1):
@@ -380,29 +374,8 @@ if color_clarity_file and pending_video_file and certify_file:
                         if header_upper == "SIZE":
                             size_col = search_col
 
-                        elif header_upper == "MAX PCS":
-                            maxpcs_col = search_col
-
                         elif header_upper == "INHAND":
                             inhand_col = search_col
-
-                        elif header_upper == "TO ORDER":
-                            toorder_col = search_col
-
-                    # =========================================
-                    # CREATE SIZE GROUP COLUMN
-                    # =========================================
-
-                    if size_col:
-
-                        sizegroup_col = size_col + 1
-
-                        ws.insert_cols(sizegroup_col)
-
-                        ws.cell(
-                            row=header_row,
-                            column=sizegroup_col
-                        ).value = "SIZE GROUP"
 
                     # =========================================
                     # PROCESS TABLE ROWS
@@ -429,19 +402,8 @@ if color_clarity_file and pending_video_file and certify_file:
                                 size_float
                             )
 
-                            # WRITE SIZE GROUP
-                            ws.cell(
-                                row=current_data_row,
-                                column=sizegroup_col
-                            ).value = size_group
-
-                            # SKIP OUT OF RANGE
-                            if size_group == "Out of Range":
-                                current_data_row += 1
-                                continue
-
                             # =========================================
-                            # MATCH PIVOT DATA
+                            # MATCH PIVOT
                             # =========================================
 
                             match_df = pivot_table[
@@ -469,10 +431,13 @@ if color_clarity_file and pending_video_file and certify_file:
                                     if pd.isna(pivot_value):
                                         pivot_value = 0
 
+                                    # =========================================
                                     # WRITE INHAND VALUE
+                                    # =========================================
+
                                     ws.cell(
                                         row=current_data_row,
-                                        column=inhand_col + 1
+                                        column=inhand_col
                                     ).value = int(pivot_value)
 
                         except:
