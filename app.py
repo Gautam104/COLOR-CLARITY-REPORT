@@ -170,6 +170,9 @@ if color_clarity_file and pending_video_file and certify_file:
         "CUSHION MODIFIED": "CUSHION",
         "CUSHION BRILLIANT": "CUSHION"
     })
+    df1["Shape"] = df1["Shape"].replace({
+    "RBC": "ROUND"
+    })
 
     # =========================================
     # STEP 5 - REMOVE PREFIXES
