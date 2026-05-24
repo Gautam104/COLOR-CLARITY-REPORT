@@ -428,11 +428,14 @@ if color_clarity_file and pending_video_file and certify_file:
                                         match_df.iloc[0][color_name]
                                     )
 
-                                    if(not pd.isna(pivot_value)and int(pivot_value) > 0):
+                                    if(
+                                        not pd.isna(pivot_value) 
+                                        and int(pivot_value) > 0
+                                    ):
                                         ws.cell(
-                                        row=current_data_row,
-                                        column=inhand_col
-                                    ).value = int(pivot_value)
+                                           row=current_data_row,
+                                           column=inhand_col
+                                        ).value = int(pivot_value)
 
                         except:
                             pass
