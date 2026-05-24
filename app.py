@@ -411,12 +411,15 @@ if color_clarity_file and pending_video_file and certify_file:
                                     pivot_table["Shape"]
                                     .astype(str)
                                     .str.upper()
-                                    == current_shape
+                                    .str.strip()
+                                    == current_shape.strip()
                                 )
                                 &
                                 (
                                     pivot_table["SIZE GROUP"]
-                                    == size_group
+                                    .astype(str)
+                                    .str.strip()
+                                    == size_group.strip()
                                 )
                             ]
 
@@ -424,9 +427,7 @@ if color_clarity_file and pending_video_file and certify_file:
 
                                 if color_name in match_df.columns:
 
-                                    pivot_value = (
-                                        match_df.iloc[0][color_name]
-                                    )
+                                    pivot_value = match_df[color_name].sum()
 
                                     if(
                                         not pd.isna(pivot_value) 
