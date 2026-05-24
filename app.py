@@ -6,9 +6,9 @@ st.set_page_config(page_title="Color Clarity Automation")
 
 st.title("Color Clarity Automation")
 
-# =========================
+# =========================================
 # FILE UPLOADERS
-# =========================
+# =========================================
 
 color_clarity_file = st.file_uploader(
     "Upload Color Clarity File",
@@ -25,9 +25,9 @@ certify_file = st.file_uploader(
     type=["xlsx"]
 )
 
-# =========================
+# =========================================
 # SIZE GROUP FUNCTION
-# =========================
+# =========================================
 
 def get_size_group(value):
 
@@ -74,15 +74,15 @@ def get_size_group(value):
     except:
         return "Out of Range"
 
-# =========================
+# =========================================
 # MAIN PROCESS
-# =========================
+# =========================================
 
 if color_clarity_file and pending_video_file and certify_file:
 
-    # =========================
+    # =========================================
     # LOAD FILES
-    # =========================
+    # =========================================
 
     df1 = pd.read_excel(color_clarity_file)
 
@@ -95,17 +95,20 @@ if color_clarity_file and pending_video_file and certify_file:
     df1.columns = df1.columns.str.strip()
     df2.columns = df2.columns.str.strip()
 
-    # =========================
+    # =========================================
     # STEP 1 - KEEP ONLY IGI
-    # =========================
+    # =========================================
 
     df1 = df1[
-        df1["Lab"].astype(str).str.upper() == "IGI"
+        df1["Lab"]
+        .astype(str)
+        .str.upper()
+        == "IGI"
     ]
 
-    # =========================
+    # =========================================
     # STEP 2 - COLOR CLEANING
-    # =========================
+    # =========================================
 
     allowed_colors = [
         "BLUE",
@@ -137,9 +140,9 @@ if color_clarity_file and pending_video_file and certify_file:
         df1["Color"].notna()
     ]
 
-    # =========================
+    # =========================================
     # STEP 3 - KEEP REQUIRED COLUMNS
-    # =========================
+    # =========================================
 
     required_columns = [
         "Serial #",
@@ -154,9 +157,9 @@ if color_clarity_file and pending_video_file and certify_file:
 
     df1 = df1[required_columns]
 
-    # =========================
+    # =========================================
     # STEP 4 - SHAPE CLEANING
-    # =========================
+    # =========================================
 
     df1["Shape"] = (
         df1["Shape"]
@@ -169,9 +172,9 @@ if color_clarity_file and pending_video_file and certify_file:
         "CUSHION BRILLIANT": "CUSHION"
     })
 
-    # =========================
+    # =========================================
     # STEP 5 - REMOVE PREFIXES
-    # =========================
+    # =========================================
 
     remove_prefixes = (
         "NY",
@@ -187,9 +190,9 @@ if color_clarity_file and pending_video_file and certify_file:
         .str.startswith(remove_prefixes)
     ]
 
-    # =========================
+    # =========================================
     # STEP 6 - STATUS LOGIC
-    # =========================
+    # =========================================
 
     customer_values = [
         "GOODS IN TRANSIT FROM OVERSEAS",
@@ -214,9 +217,9 @@ if color_clarity_file and pending_video_file and certify_file:
         "Status"
     ] = "Inhand"
 
-    # =========================
+    # =========================================
     # STEP 7 - MATCH STATUS
-    # =========================
+    # =========================================
 
     status_map = (
         df2
@@ -232,9 +235,9 @@ if color_clarity_file and pending_video_file and certify_file:
         df1["Serial #"].map(status_map)
     )
 
-    # =========================
+    # =========================================
     # STEP 8 - SIZE GROUP
-    # =========================
+    # =========================================
 
     cts_index = df1.columns.get_loc("Cts.")
 
@@ -249,9 +252,9 @@ if color_clarity_file and pending_video_file and certify_file:
         df1["SIZE GROUP"] != "Out of Range"
     ]
 
-    # =========================
+    # =========================================
     # STEP 9 - CREATE PIVOT TABLE
-    # =========================
+    # =========================================
 
     pivot_df = df1[
         df1["Status"]
@@ -270,9 +273,9 @@ if color_clarity_file and pending_video_file and certify_file:
 
     pivot_table = pivot_table.reset_index()
 
-    # =========================
+    # =========================================
     # STEP 10 - LOAD CERTIFY FILE
-    # =========================
+    # =========================================
 
     wb = load_workbook(certify_file)
 
@@ -298,12 +301,13 @@ if color_clarity_file and pending_video_file and certify_file:
         "BAGUETTE",
         "ANGEL",
         "BUTTERFLY",
-        "FLOWER"
+        "FLOWER",
+        "LONG RADIANT"
     ]
 
-    # =========================
-    # STEP 11 - PROCESS SHEETS
-    # =========================
+    # =========================================
+    # STEP 11 - PROCESS COLOR SHEETS
+    # =========================================
 
     for color_name in color_sheets:
 
@@ -314,13 +318,9 @@ if color_clarity_file and pending_video_file and certify_file:
 
         current_shape = None
 
-        size_col = None
-        inhand_col = None
-        size_group_col = None
-
-        # =========================
-        # FIND HEADERS
-        # =========================
+        # =========================================
+        # FIND SHAPE TABLES
+        # =========================================
 
         for row in range(1, ws.max_row + 1):
 
@@ -331,131 +331,158 @@ if color_clarity_file and pending_video_file and certify_file:
                     column=col
                 ).value
 
-                if cell_value:
-
-                    header = str(cell_value).strip().upper()
-
-                    # FIND SIZE COLUMN
-                    if header == "SIZE":
-                        size_col = col
-
-                    # FIND INHAND COLUMN
-                    elif header == "INHAND":
-                        inhand_col = col
-
-                        # CREATE SIZE GROUP COLUMN
-                        size_group_col = inhand_col + 1
-
-                        ws.cell(
-                            row=row,
-                            column=size_group_col
-                        ).value = "SIZE GROUP"
-
-        # =========================
-        # PROCESS ROWS
-        # =========================
-
-        for row in range(1, ws.max_row + 1):
-
-            first_col_value = ws.cell(
-                row=row,
-                column=1
-            ).value
-
-            # =========================
-            # DETECT SHAPES
-            # =========================
-
-            if first_col_value:
+                if not cell_value:
+                    continue
 
                 value_upper = (
-                    str(first_col_value)
+                    str(cell_value)
                     .strip()
                     .upper()
                 )
 
+                # =========================================
+                # DETECT SHAPE
+                # =========================================
+
                 if value_upper in possible_shapes:
+
                     current_shape = value_upper
 
-            # =========================
-            # PROCESS SIZE ROWS
-            # =========================
+                    header_row = row + 1
+                    data_start_row = row + 2
 
-            if (
-                current_shape
-                and size_col
-                and inhand_col
-                and size_group_col
-            ):
+                    size_col = None
+                    maxpcs_col = None
+                    inhand_col = None
+                    toorder_col = None
+                    sizegroup_col = None
 
-                size_value = ws.cell(
-                    row=row,
-                    column=size_col
-                ).value
+                    # =========================================
+                    # FIND TABLE HEADERS
+                    # =========================================
 
-                try:
+                    for search_col in range(1, ws.max_column + 1):
 
-                    size_float = float(size_value)
+                        header_value = ws.cell(
+                            row=header_row,
+                            column=search_col
+                        ).value
 
-                    # CREATE SIZE GROUP
-                    size_group = get_size_group(
-                        size_float
-                    )
+                        if not header_value:
+                            continue
 
-                    # WRITE SIZE GROUP
-                    ws.cell(
-                        row=row,
-                        column=size_group_col
-                    ).value = size_group
-
-                    # SKIP OUT OF RANGE
-                    if size_group == "Out of Range":
-                        continue
-
-                    # =========================
-                    # MATCH PIVOT DATA
-                    # =========================
-
-                    match_df = pivot_table[
-                        (
-                            pivot_table["Shape"]
-                            .astype(str)
-                            .str.upper()
-                            == current_shape
+                        header_upper = (
+                            str(header_value)
+                            .strip()
+                            .upper()
                         )
-                        &
-                        (
-                            pivot_table["SIZE GROUP"]
-                            == size_group
-                        )
-                    ]
 
-                    # =========================
-                    # COPY TO INHAND
-                    # =========================
+                        if header_upper == "SIZE":
+                            size_col = search_col
 
-                    if not match_df.empty:
+                        elif header_upper == "MAX PCS":
+                            maxpcs_col = search_col
 
-                        if color_name in match_df.columns:
+                        elif header_upper == "INHAND":
+                            inhand_col = search_col
 
-                            pivot_value = (
-                                match_df.iloc[0][color_name]
+                        elif header_upper == "TO ORDER":
+                            toorder_col = search_col
+
+                    # =========================================
+                    # CREATE SIZE GROUP COLUMN
+                    # =========================================
+
+                    if size_col:
+
+                        sizegroup_col = size_col + 1
+
+                        ws.insert_cols(sizegroup_col)
+
+                        ws.cell(
+                            row=header_row,
+                            column=sizegroup_col
+                        ).value = "SIZE GROUP"
+
+                    # =========================================
+                    # PROCESS TABLE ROWS
+                    # =========================================
+
+                    current_data_row = data_start_row
+
+                    while True:
+
+                        size_value = ws.cell(
+                            row=current_data_row,
+                            column=size_col
+                        ).value
+
+                        # STOP AT TOTAL
+                        if str(size_value).strip().upper() == "TOTAL":
+                            break
+
+                        try:
+
+                            size_float = float(size_value)
+
+                            size_group = get_size_group(
+                                size_float
                             )
 
-                            if pd.isna(pivot_value):
-                                pivot_value = 0
-
+                            # WRITE SIZE GROUP
                             ws.cell(
-                                row=row,
-                                column=inhand_col
-                            ).value = int(pivot_value)
+                                row=current_data_row,
+                                column=sizegroup_col
+                            ).value = size_group
 
-                except:
-                    pass
+                            # SKIP OUT OF RANGE
+                            if size_group == "Out of Range":
+                                current_data_row += 1
+                                continue
 
-    # =========================
+                            # =========================================
+                            # MATCH PIVOT DATA
+                            # =========================================
+
+                            match_df = pivot_table[
+                                (
+                                    pivot_table["Shape"]
+                                    .astype(str)
+                                    .str.upper()
+                                    == current_shape
+                                )
+                                &
+                                (
+                                    pivot_table["SIZE GROUP"]
+                                    == size_group
+                                )
+                            ]
+
+                            if not match_df.empty:
+
+                                if color_name in match_df.columns:
+
+                                    pivot_value = (
+                                        match_df.iloc[0][color_name]
+                                    )
+
+                                    if pd.isna(pivot_value):
+                                        pivot_value = 0
+
+                                    # WRITE INHAND VALUE
+                                    ws.cell(
+                                        row=current_data_row,
+                                        column=inhand_col + 1
+                                    ).value = int(pivot_value)
+
+                        except:
+                            pass
+
+                        current_data_row += 1
+
+    # =========================================
     # SAVE FINAL OUTPUT
-    # =========================
+    # =========================================
 
     final_output = "Final_Output.xlsx"
 
@@ -476,9 +503,9 @@ if color_clarity_file and pending_video_file and certify_file:
             index=False
         )
 
-    # =========================
-    # SAVE CERTIFY OUTPUT
-    # =========================
+    # =========================================
+    # SAVE UPDATED CERTIFY FILE
+    # =========================================
 
     certify_output = "Updated_Certify_Color_Stone.xlsx"
 
@@ -486,9 +513,9 @@ if color_clarity_file and pending_video_file and certify_file:
 
     st.success("Automation Completed Successfully!")
 
-    # =========================
+    # =========================================
     # DOWNLOAD BUTTONS
-    # =========================
+    # =========================================
 
     with open(final_output, "rb") as file1:
 
