@@ -423,6 +423,8 @@ if color_clarity_file and pending_video_file and certify_file:
                                 )
                             ]
 
+                            pivot_value = None
+
                             if not match_df.empty:
 
                                 if color_name in match_df.columns:
@@ -430,7 +432,8 @@ if color_clarity_file and pending_video_file and certify_file:
                                     pivot_value = match_df.iloc[0][color_name]
 
                                     if(
-                                        not pd.isna(pivot_value) 
+                                        pivot_value is not None
+                                        and not pd.isna(pivot_value)
                                         and int(pivot_value) > 0
                                     ):
                                         ws.cell(
