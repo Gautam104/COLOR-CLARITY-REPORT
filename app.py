@@ -427,7 +427,7 @@ if color_clarity_file and pending_video_file and certify_file:
 
                                 if color_name in match_df.columns:
 
-                                    pivot_value = match_df[color_name].sum()
+                                    pivot_value = match_df.iloc[0][color_name]
 
                                     if(
                                         not pd.isna(pivot_value) 
