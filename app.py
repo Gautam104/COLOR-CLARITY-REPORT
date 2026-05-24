@@ -406,6 +406,10 @@ if color_clarity_file and pending_video_file and certify_file:
                             # MATCH PIVOT
                             # =========================================
 
+                            print("CURRENT SHAPE:", current_shape)
+                            print("SIZE VALUE:", size_value)
+                            print("SIZE GROUP:", size_group)
+
                             match_df = pivot_table[
                                 (
                                     pivot_table["Shape"]
@@ -423,6 +427,9 @@ if color_clarity_file and pending_video_file and certify_file:
                                     == str(size_group).strip().upper()
                                 )
                             ]
+                            print(match_df)
+
+                            
 
                             pivot_value = None
 
