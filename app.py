@@ -91,6 +91,10 @@ if color_clarity_file and pending_video_file and certify_file:
         sheet_name=0
     )
 
+    # CLEAN COLUMN NAMES
+    df1.columns = df1.columns.str.strip()
+    df2.columns = df2.columns.str.strip()
+
     # =========================
     # STEP 1 - KEEP ONLY IGI
     # =========================
@@ -128,12 +132,13 @@ if color_clarity_file and pending_video_file and certify_file:
 
     df1["Color"] = df1["Color"].apply(clean_color)
 
+    # REMOVE OTHER COLORS
     df1 = df1[
         df1["Color"].notna()
     ]
 
     # =========================
-    # STEP 3 - KEEP COLUMNS
+    # STEP 3 - KEEP REQUIRED COLUMNS
     # =========================
 
     required_columns = [
@@ -152,6 +157,12 @@ if color_clarity_file and pending_video_file and certify_file:
     # =========================
     # STEP 4 - SHAPE CLEANING
     # =========================
+
+    df1["Shape"] = (
+        df1["Shape"]
+        .astype(str)
+        .str.upper()
+    )
 
     df1["Shape"] = df1["Shape"].replace({
         "CUSHION MODIFIED": "CUSHION",
@@ -204,7 +215,7 @@ if color_clarity_file and pending_video_file and certify_file:
     ] = "Inhand"
 
     # =========================
-    # STEP 7 - STATUS MATCH
+    # STEP 7 - MATCH STATUS
     # =========================
 
     status_map = (
@@ -233,16 +244,19 @@ if color_clarity_file and pending_video_file and certify_file:
         df1["Cts."].apply(get_size_group)
     )
 
+    # REMOVE OUT OF RANGE
     df1 = df1[
         df1["SIZE GROUP"] != "Out of Range"
     ]
 
     # =========================
-    # STEP 9 - CREATE PIVOT
+    # STEP 9 - CREATE PIVOT TABLE
     # =========================
 
     pivot_df = df1[
-        df1["Status"].astype(str).str.upper() == "INHAND"
+        df1["Status"]
+        .astype(str)
+        .str.upper() == "INHAND"
     ]
 
     pivot_table = pd.pivot_table(
@@ -271,6 +285,22 @@ if color_clarity_file and pending_video_file and certify_file:
         "YELLOW"
     ]
 
+    possible_shapes = [
+        "HEART",
+        "OVAL",
+        "CUSHION",
+        "PEAR",
+        "MARQUISE",
+        "PRINCESS",
+        "RADIANT",
+        "EMERALD",
+        "ASSCHER",
+        "BAGUETTE",
+        "ANGEL",
+        "BUTTERFLY",
+        "FLOWER"
+    ]
+
     # =========================
     # STEP 11 - PROCESS SHEETS
     # =========================
@@ -284,79 +314,147 @@ if color_clarity_file and pending_video_file and certify_file:
 
         current_shape = None
 
+        size_col = None
+        inhand_col = None
+        size_group_col = None
+
+        # =========================
+        # FIND HEADERS
+        # =========================
+
         for row in range(1, ws.max_row + 1):
 
-            value = ws.cell(row=row, column=1).value
+            for col in range(1, ws.max_column + 1):
+
+                cell_value = ws.cell(
+                    row=row,
+                    column=col
+                ).value
+
+                if cell_value:
+
+                    header = str(cell_value).strip().upper()
+
+                    # FIND SIZE COLUMN
+                    if header == "SIZE":
+                        size_col = col
+
+                    # FIND INHAND COLUMN
+                    elif header == "INHAND":
+                        inhand_col = col
+
+                        # CREATE SIZE GROUP COLUMN
+                        size_group_col = inhand_col + 1
+
+                        ws.cell(
+                            row=row,
+                            column=size_group_col
+                        ).value = "SIZE GROUP"
+
+        # =========================
+        # PROCESS ROWS
+        # =========================
+
+        for row in range(1, ws.max_row + 1):
+
+            first_col_value = ws.cell(
+                row=row,
+                column=1
+            ).value
 
             # =========================
-            # FIND SHAPE NAME
+            # DETECT SHAPES
             # =========================
 
-            if value:
+            if first_col_value:
 
-                value_upper = str(value).strip().upper()
-
-                possible_shapes = [
-                    "HEART",
-                    "OVAL",
-                    "CUSHION",
-                    "PEAR",
-                    "MARQUISE",
-                    "PRINCESS",
-                    "RADIANT",
-                    "EMERALD",
-                    "ASSCHER",
-                    "BAGUETTE",
-                    "ANGEL",
-                    "BUTTERFLY",
-                    "FLOWER"
-                ]
+                value_upper = (
+                    str(first_col_value)
+                    .strip()
+                    .upper()
+                )
 
                 if value_upper in possible_shapes:
                     current_shape = value_upper
 
             # =========================
-            # FIND SIZE ROWS
+            # PROCESS SIZE ROWS
             # =========================
 
-            size_value = ws.cell(row=row, column=1).value
+            if (
+                current_shape
+                and size_col
+                and inhand_col
+                and size_group_col
+            ):
 
-            if current_shape and size_value:
+                size_value = ws.cell(
+                    row=row,
+                    column=size_col
+                ).value
 
                 try:
 
                     size_float = float(size_value)
 
-                    size_group = get_size_group(size_float)
+                    # CREATE SIZE GROUP
+                    size_group = get_size_group(
+                        size_float
+                    )
+
+                    # WRITE SIZE GROUP
+                    ws.cell(
+                        row=row,
+                        column=size_group_col
+                    ).value = size_group
+
+                    # SKIP OUT OF RANGE
+                    if size_group == "Out of Range":
+                        continue
+
+                    # =========================
+                    # MATCH PIVOT DATA
+                    # =========================
 
                     match_df = pivot_table[
-                        (pivot_table["Shape"].astype(str).str.upper() == current_shape)
+                        (
+                            pivot_table["Shape"]
+                            .astype(str)
+                            .str.upper()
+                            == current_shape
+                        )
                         &
-                        (pivot_table["SIZE GROUP"] == size_group)
+                        (
+                            pivot_table["SIZE GROUP"]
+                            == size_group
+                        )
                     ]
+
+                    # =========================
+                    # COPY TO INHAND
+                    # =========================
 
                     if not match_df.empty:
 
                         if color_name in match_df.columns:
 
-                            inhand_value = int(
+                            pivot_value = (
                                 match_df.iloc[0][color_name]
                             )
 
-                            # =========================
-                            # WRITE TO INHAND COLUMN
-                            # =========================
+                            if pd.isna(pivot_value):
+                                pivot_value = 0
 
                             ws.cell(
                                 row=row,
-                                column=3
-                            ).value = inhand_value
+                                column=inhand_col
+                            ).value = int(pivot_value)
 
                 except:
                     pass
 
     # =========================
-    # SAVE OUTPUT FILES
+    # SAVE FINAL OUTPUT
     # =========================
 
     final_output = "Final_Output.xlsx"
@@ -377,6 +475,10 @@ if color_clarity_file and pending_video_file and certify_file:
             sheet_name="Sheet2",
             index=False
         )
+
+    # =========================
+    # SAVE CERTIFY OUTPUT
+    # =========================
 
     certify_output = "Updated_Certify_Color_Stone.xlsx"
 
