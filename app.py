@@ -355,7 +355,7 @@ if color_clarity_file and pending_video_file and certify_file:
                     # FIND HEADERS
                     # =========================================
 
-                    for search_col in range(1, ws.max_column + 1):
+                    for search_col in range(col, col + 5):
 
                         header_value = ws.cell(
                             row=header_row,
