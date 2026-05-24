@@ -301,7 +301,9 @@ if color_clarity_file and pending_video_file and certify_file:
         "ANGEL",
         "BUTTERFLY",
         "FLOWER",
-        "LONG RADIANT"
+        "LONG RADIANT",
+        "ROUND",
+        "RBC"
     ]
 
     # =========================================
@@ -344,6 +346,8 @@ if color_clarity_file and pending_video_file and certify_file:
                 if value_upper in possible_shapes:
 
                     current_shape = value_upper
+                    if current_shape == "RBC":
+                        current_shape = "ROUND"
 
                     header_row = row + 1
                     data_start_row = row + 2
