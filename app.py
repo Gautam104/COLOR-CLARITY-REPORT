@@ -419,7 +419,8 @@ if color_clarity_file and pending_video_file and certify_file:
                                     pivot_table["SIZE GROUP"]
                                     .astype(str)
                                     .str.strip()
-                                    == size_group.strip()
+                                    .str.upper()
+                                    == str(size_group).strip().upper()
                                 )
                             ]
 
@@ -431,29 +432,28 @@ if color_clarity_file and pending_video_file and certify_file:
 
                                     pivot_value = match_df.iloc[0][color_name]
 
-                                    if(
-                                        pivot_value is not None
-                                        and not pd.isna(pivot_value)
-                                        and int(pivot_value) > 0
-                                    ):
-                                        ws.cell(
-                                           row=current_data_row,
-                                           column=inhand_col
-                                        ).value = int(pivot_value)
+                            if (
+                                pivot_value is not None
+                                and not pd.isna(pivot_value)
+                                and int(pivot_value) > 0
+                            ):
 
-                                    else:
+                                ws.cell(
+                                    row=current_data_row,
+                                    column=inhand_col
+                                ).value = int(pivot_value)
 
-                                        ws.cell(
-                                            row=current_data_row,
-                                            column=inhand_col
-                                        ).value = ""    
+                            else:
+
+                                ws.cell(
+                                    row=current_data_row,
+                                    column=inhand_col
+                                ).value = ""
 
                         except:
                             pass
 
                         current_data_row += 1
-                        
-                        
 
     # =========================================
     # SAVE FINAL OUTPUT
