@@ -257,6 +257,9 @@ if color_clarity_file and pending_video_file and certify_file:
     # =========================================
     # STEP 9 - CREATE PIVOT TABLE
     # =========================================
+    st.write("TOTAL ROWS:", len(df1))
+    st.write(df1[df1["Shape"] == "OVAL"])
+    st.write(df1[(df1["Shape"] == "OVAL") & (df1["Color"] == "BLUE")])
 
     pivot_df = df1[
         df1["Status"]
