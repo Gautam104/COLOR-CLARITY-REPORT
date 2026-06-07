@@ -351,6 +351,9 @@ if color_clarity_file and pending_video_file and certify_file:
                     current_shape = value_upper
                     if current_shape == "RBC":
                         current_shape = "ROUND"
+                        
+                    if current_shape == "LONG RADIANT":
+                        current_shape = "RADIANT"
 
                     header_row = row + 1
                     data_start_row = row + 2
