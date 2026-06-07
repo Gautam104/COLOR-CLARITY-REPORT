@@ -260,6 +260,8 @@ if color_clarity_file and pending_video_file and certify_file:
     st.write("TOTAL ROWS:", len(df1))
     st.write(df1[df1["Shape"] == "OVAL"])
     st.write(df1[(df1["Shape"] == "OVAL") & (df1["Color"] == "BLUE")])
+    
+    st.write(df1[(df1["Shape"] == "OVAL") & (df1["Color"] == "BLUE") & (df1["SIZE GROUP"] == "2.00-2.99")])
 
     pivot_df = df1[
         df1["Status"]
