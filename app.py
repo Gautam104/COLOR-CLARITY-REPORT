@@ -205,6 +205,7 @@ if color_clarity_file and pending_video_file and certify_file:
     mask = (
         df2["Customer"]
         .astype(str)
+        .str.strip()
         .str.upper()
         .isin(customer_values)
     )
