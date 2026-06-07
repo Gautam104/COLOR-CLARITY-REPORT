@@ -258,11 +258,11 @@ if color_clarity_file and pending_video_file and certify_file:
     # =========================================
     # STEP 9 - CREATE PIVOT TABLE
     # =========================================
-    st.write("TOTAL ROWS:", len(df1))
-    st.write(df1[df1["Shape"] == "OVAL"])
-    st.write(df1[(df1["Shape"] == "OVAL") & (df1["Color"] == "BLUE")])
+    # st.write("TOTAL ROWS:", len(df1))
+    # st.write(df1[df1["Shape"] == "OVAL"])
+    # st.write(df1[(df1["Shape"] == "OVAL") & (df1["Color"] == "BLUE")])
     
-    st.write(df1[(df1["Shape"] == "OVAL") & (df1["Color"] == "BLUE") & (df1["SIZE GROUP"] == "2.00-2.99")])
+    # st.write(df1[(df1["Shape"] == "OVAL") & (df1["Color"] == "BLUE") & (df1["SIZE GROUP"] == "2.00-2.99")])
 
     pivot_df = df1[
         df1["Status"]
@@ -422,9 +422,9 @@ if color_clarity_file and pending_video_file and certify_file:
                             # MATCH PIVOT
                             # =========================================
 
-                            st.write("CURRENT SHAPE:", current_shape)
-                            st.write("SIZE VALUE:", size_value)
-                            st.write("SIZE GROUP:", size_group)
+                            # st.write("CURRENT SHAPE:", current_shape)
+                            # st.write("SIZE VALUE:", size_value)
+                            # st.write("SIZE GROUP:", size_group)
 
 
                             match_df = pivot_table[
@@ -444,8 +444,8 @@ if color_clarity_file and pending_video_file and certify_file:
                                     == str(size_group).strip().upper()
                                 )
                             ]
-                            st.write("COLOR:", color_name)
-                            st.write(match_df)
+                            # st.write("COLOR:", color_name)
+                            # st.write(match_df)
 
                             
 
