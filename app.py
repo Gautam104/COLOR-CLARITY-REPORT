@@ -416,9 +416,9 @@ if color_clarity_file and pending_video_file and certify_file:
                             # MATCH PIVOT
                             # =========================================
 
-                            # st.write("CURRENT SHAPE:", current_shape)
-                            # st.write("SIZE VALUE:", size_value)
-                            # st.write("SIZE GROUP:", size_group)
+                            st.write("CURRENT SHAPE:", current_shape)
+                            st.write("SIZE VALUE:", size_value)
+                            st.write("SIZE GROUP:", size_group)
 
 
                             match_df = pivot_table[
@@ -438,7 +438,8 @@ if color_clarity_file and pending_video_file and certify_file:
                                     == str(size_group).strip().upper()
                                 )
                             ]
-                            # st.write(match_df)
+                            st.write("COLOR:", color_name)
+                            st.write(match_df)
 
                             
 
